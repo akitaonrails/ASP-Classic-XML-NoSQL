@@ -1,0 +1,33 @@
+<html>
+<head>
+<title>Insert an Image</title>
+<link rel="stylesheet" href="../../styles.css">
+<script language="JScript">
+function Insert() {
+	var aReturn = new Array();
+	aReturn[ "URL" ] = document.all.txtURL.value;
+	window.returnValue = aReturn;
+	window.close();
+}
+function Cancel() {
+	window.cancel();
+}
+</script>
+</head>
+<table width="100%" border="0">
+  <tr> 
+    <td>URL:</td>
+    <td><input type="text" size="35" maxlength="150" name="txtURL"></td>
+  </tr>
+  <tr> 
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr align="center"> 
+    <td colspan="2">
+		<button style="width: 50px" onclick="Insert()"> OK </button> 
+		<button style="width: 50px" onclick="Cancel()"> Cancel </button>
+	</td>
+  </tr>
+</table>
+</html>

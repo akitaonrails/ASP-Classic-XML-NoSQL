@@ -1,0 +1,28 @@
+<HTML xmlns:IE>
+<HEAD>
+<TITLE>Calendar</TITLE>
+<STYLE>
+@media all 
+{
+  IE\:Calendar 
+  {
+    behavior: url(../../incs/calendar.htc) ;
+    width : 33%;
+  }
+}
+</STYLE>
+<SCRIPT LANGUAGE = JScript> 
+function window.onunload() {
+	var arr = new Array();
+	arr[ 'date' ] = cal.value;
+	window.returnValue = arr;
+	window.close();
+}
+</SCRIPT>
+</HEAD>
+<BODY BGCOLOR="#CCCCCC">
+<CENTER>
+<IE:Calendar id="cal" style="width : 300; height : 275; border : 1px solid black;"> </IE:Calendar>
+</CENTER>
+</BODY>
+</HTML>

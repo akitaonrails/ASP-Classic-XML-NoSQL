@@ -1,0 +1,79 @@
+#divEdit {
+	position:relative;
+	font-family: Tahoma, Verdana, Arial;
+	font-size: 9pt;
+	width: 600px;
+	height: 300px;
+	background-color:white;
+	border: 1px solid #000000;
+	overflow: auto;
+	padding: 3;
+	}
+#divSource {
+	position: relative;
+	background-color: #EEEEEE;
+	color: #000000;
+	font-family: Tahoma, Verdana;
+	font-size: 9pt;
+	padding: 3
+}
+.tbToolbar
+{
+    BACKGROUND-COLOR: buttonface; 
+    BORDER-BOTTOM: buttonshadow solid 1px; 
+    BORDER-LEFT: buttonhighlight solid 1px; 
+    BORDER-RIGHT: buttonshadow solid 1px; 
+    BORDER-TOP:  buttonhighlight solid 1px; 
+    HEIGHT: 27px; 
+	WIDTH: 600px;
+}
+.tbButton
+{
+    BACKGROUND-COLOR: buttonface; 
+	BORDER-BOTTOM: buttonface solid 1px; 
+    BORDER-LEFT: buttonface solid 1px; 
+    BORDER-RIGHT: buttonface solid 1px; 
+    BORDER-TOP:  buttonface solid 1px; 
+    HEIGHT: 25px; 
+    WIDTH: 25px;
+}
+.tbSeparator
+{
+	BORDER-LEFT: buttonshadow solid 1px; 
+	BORDER-RIGHT: buttonhighlight solid 1px; 
+	FONT-SIZE: 0px; 
+	HEIGHT: 22px; 
+	WIDTH: 1px; 
+}
+.tbButtonMouseOverUp
+{
+    BACKGROUND-COLOR: buttonface; 
+    BORDER-BOTTOM: buttonshadow solid 1px; 
+    BORDER-LEFT: buttonhighlight solid 1px; 
+    BORDER-RIGHT: buttonshadow solid 1px; 
+    BORDER-TOP:  buttonhighlight solid 1px; 
+    HEIGHT: 25px; 
+    WIDTH: 25px;
+}
+.tbButtonMouseOverDown
+{
+    BACKGROUND-COLOR: buttonface; 
+    BORDER-BOTTOM: buttonhighlight solid 1px; 
+    BORDER-LEFT: buttonshadow solid 1px; 
+    BORDER-RIGHT: buttonhighlight solid 1px; 
+    BORDER-TOP:  buttonshadow solid 1px; 
+    HEIGHT: 25px; 
+    WIDTH: 25px;
+}
+.tbButtonDown
+{
+    BACKGROUND-COLOR: gainsboro; 
+    BORDER-BOTTOM: buttonhighlight solid 1px; 
+    BORDER-LEFT: buttonshadow solid 1px; 
+    BORDER-RIGHT: buttonhighlight solid 1px; 
+    BORDER-TOP:  buttonshadow solid 1px; 
+    HEIGHT: 25px; 
+    WIDTH: 25px;
+}
+a { text-decoration: underline; color: #666666 }
+input { border: 1px solid black }

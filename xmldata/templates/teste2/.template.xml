@@ -1,0 +1,30 @@
+<template>
+<name>Corinthians Soccer Tournment</name>
+
+<page>
+	<name>History</name>
+	<token>history</token>
+	<style />
+</page>
+
+<page>
+	<name>Rules</name>
+	<token>rules</token>
+	<style />
+</page>
+
+<page>
+	<name>Results</name>
+	<token>results</token>
+	<style />
+	<schema />
+</page>
+
+<page>
+	<name>Standings</name>
+	<token>standings</token>
+	<style />
+	<schema />
+</page>
+
+</template>

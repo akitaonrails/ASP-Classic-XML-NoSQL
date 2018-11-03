@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+
+<table>
+	<header>
+		<col>groupTitle</col>
+	</header>
+	<item>
+		<col>date</col>
+		<col>teamHome</col>
+		<col>goalsHome</col>
+		<col>goalsVisitor</col>
+		<col>teamVisitor</col>
+	</item>
+	<footer />
+</table>
+
+</root>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+<table>
+    <header/>
+    <item>
+        <col>nome</col>
+        <col>telefone</col>
+        <col>email</col>
+    </item>
+    <footer/>
+</table>
+</root>

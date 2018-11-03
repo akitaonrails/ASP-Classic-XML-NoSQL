@@ -1,0 +1,7 @@
+<!ELEMENT root ( table* )>
+<!ELEMENT table ( header?, itemtitle? , item*, footer? )>
+	<!ELEMENT header ( col+ )>
+	<!ELEMENT itemtitle ( col+ )>
+	<!ELEMENT item ( col+ )>
+	<!ELEMENT footer ( col+ )>
+		<!ELEMENT col (#PCDATA)>

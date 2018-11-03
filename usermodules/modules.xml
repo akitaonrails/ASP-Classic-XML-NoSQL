@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<collection>
+	<module>
+		<name>Simple Table Editor</name>
+		<folder>mod_simpletable</folder>
+		<template>
+			<data name="Simple Table Schema">template.xml</data>
+		</template>
+	</module>
+	<module>
+		<name>Simple Tree Editor</name>
+		<folder>mod_treetable</folder>
+		<template>
+			<data name="Tree Table Data">chave.xml</data>
+			<style name="Tree Table Style">chave.xsl</style>
+		</template>
+	</module>
+	<module>
+		<name>Document Editor</name>
+		<folder>mod_texteditor</folder>
+		<template>
+			<data name="Document Template">template.xml</data>
+		</template>
+	</module>
+	<module>
+		<name>File Cloner</name>
+		<folder>mod_clonefile</folder>
+		<template/>
+	</module>
+</collection>

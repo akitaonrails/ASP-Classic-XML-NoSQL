@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+	<table>
+		<header>
+			<groupTitle>Grupo A</groupTitle>
+		</header>
+		<item>
+			<date>01/08 - DOMINGO</date>
+			<teamHome>Corinthians</teamHome>
+			<goalsHome>0</goalsHome>
+			<goalsVisitor>0</goalsVisitor>
+			<teamVisitor>Corinthians</teamVisitor>
+		</item>
+		<footer/>
+	</table>
+</root>

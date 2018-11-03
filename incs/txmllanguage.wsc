@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<component>
+
+<registration 
+	progid="PSNXML.TXMLLanguage" 
+	description="Encapsulates the Language manipulation for the XML Tools"
+	version="1.0.0.0"
+	/>
+
+<public>
+	<property name="Oracle">
+		<get internalName="Get_Oracle"/>
+		<put internalName="Set_Oracle"/>
+	</property>
+
+	<property name="ActiveConnection">
+		<put internalName="Set_ActiveConnection"/>
+	</property>
+
+	<property name="Count">
+		<get internalName="Get_Count"/>
+	</property>
+
+	<property name="XML">
+		<get internalName="Get_XML"/>
+	</property>
+
+	<method name="Add">
+		<parameter name="sLabel" />
+		<parameter name="sShortLabel" />
+	</method>
+
+	<method name="Update">
+		<parameter name="sLabel" />
+		<parameter name="sShortLabel" />
+	</method>
+
+	<method name="Delete">
+		<parameter name="iID" />
+	</method>
+
+	<method name="SetCommon">
+		<parameter name="iID" />
+	</method>
+</public>
+
+<implements type="ASP" />
+<script language="VBScript">
+<![CDATA[   
+
+' disconnected recordset storage and index
+Dim aList
+	
+' external linked ADO connection
+Dim oConn
+	
+' defines the type of queries
+Dim bOracle
+Dim qList, qInsert, qUpdate, qDelete, qUnsetCommon, qSetCommon
+	
+Function Get_Oracle
+	Get_Oracle = bOracle
+End Function
+	
+Sub Set_Oracle( bFlag )
+	If bFlag Then
+		bOracle = True
+	Else
+		bOracle = False
+	End If
+	Call DefineQueries
+End Sub
+
+' links with an external connection and refresh recordset	
+Sub Set_ActiveConnection( ByRef Conn ) 
+	Set oConn = Conn
+	Call RefreshList
+End Sub
+
+Function Get_Count
+	Get_Count = 0
+	If IsArray( aList ) Then
+		Get_Count = UBound( aList, 2 ) + 1
+	End If
+End Function
+
+' returns a recordset in xml format
+' <list>
+'	<language>(...)</language>
+' </list>
+Function Get_XML
+	Dim intCount, sXML
+	sXML = ""
+	If IsArray( aList ) Then
+		sXML = "<list>" & vbCRLF
+		For intCount = 0 To UBound( aList, 2 )
+			sXML = sXML & "	<language>" & vbCRLF & _
+				"		<id>"			& aList( 0, intCount ) & "</id>"		& vbCRLF & _
+				"		<creation>"		& aList( 1, intCount ) & "</creation>"	& vbCRLF & _
+				"		<label>"		& aList( 2, intCount ) & "</label>"		& vbCRLF & _
+				"		<shortlabel>"	& aList( 3, intCount ) & "</shortlabel>" & vbCRLF & _
+				"		<is_common>"	& aList( 4, intCount ) & "</is_common>" & vbCRLF & _
+				"	</language>" & vbCRLF
+		Next
+		sXML = sXML & "</list>"
+	End If
+	Get_XML = sXML
+End Function
+	
+' insert a new language
+Function Add( sLabel, sShortLabel )
+	Dim sSQL
+		
+	If IsEmpty( sLabel ) or IsEmpty( sShortLabel ) Then
+		Add = False
+		Exit Function
+	End If
+		
+	' builds the sql command
+	sSQL = Replace( qInsert, "%label", sLabel )
+	sSQL = Replace( sSQL, "%shortlabel", sShortLabel )
+
+	If ExecuteSQL( sSQL ) Then
+		Call RefreshList()
+		Add = True
+	Else
+		Add = False
+	End If
+
+End Function
+
+' update the language name and shortname
+' can only change the label names, nothing else due to relationship contract
+Function Update( sLabel, sShortLabel )
+	Dim sSQL, iID
+
+	iID = Get_LanguageID()
+	If Not IsNumeric( iID ) or IsNull( iID ) Then
+		Delete = False
+		Exit Function
+	End If
+	
+	sSQL = Replace( qUpdate, "%label", sLabel )
+	sSQL = Replace( sSQL, "%shortlabel", sShortLabel )
+	sSQL = Replace( sSQL, "%id", iID )
+	
+	If ExecuteSQL( sSQL ) Then
+		Call RefreshList()
+		Update = True
+	Else
+		Update = False
+	End If
+End Function
+
+' sets a non-active flag to emulate a delete operation
+Function Delete( iID )
+	Dim sSQL
+	
+	If Not IsNumeric( iID ) or IsNull( iID ) Then
+		Delete = False
+		Exit Function
+	End If
+	
+	sSQL = Replace( qDelete, "%id", iID )
+	
+	If ExecuteSQL( sSQL ) Then
+		Call RefreshList()
+		Delete = True
+	Else
+		Delete = False
+	End If
+
+End Function
+
+' set a language-independent pseudo-language
+Function SetCommon( iID ) 
+	If Not IsNumeric( iID ) or IsNull( iID ) or IsNull( oConn ) Then
+		SetCommon = False
+		Exit Function
+	End If
+	
+	Dim sSQL
+	sSQL = Replace( qSetCommon, "%id", iID )
+	
+	on error resume next
+	oConn.BeginTrans
+	oConn.Execute qUnsetCommon
+	oConn.Execute sSQL
+	If oConn.Errors.Count > 0 Then
+		SetCommon = False
+		oConn.RollbackTrans
+	Else
+		SetCommon = True
+		oConn.CommitTrans
+	End If
+	on error goto 0
+End Function
+
+' generic ado command wrapper
+Function ExecuteSQL( sSQL )
+	If IsNull( sSQL ) or IsEmpty( sSQL ) or IsNull( oCOnn ) Then
+		ExecuteSQL = False
+		Exit Function
+	End If
+
+	on error resume next
+	oConn.BeginTrans
+	oConn.Execute sSQL
+	If oConn.Errors.Count > 0 Then
+		ExecuteSQL = False
+		oConn.RollbackTrans
+	Else
+		ExecuteSQL = True
+		oConn.CommitTrans
+	End If
+	on error goto 0
+End Function
+
+' --- retrieves the database recordset
+Sub RefreshList
+	If Not IsNull( oConn ) Then
+		Dim oRS
+		Set oRS = Server.CreateObject( "ADODB.Recordset" )
+		oRS.ActiveConnection = oConn
+		oRS.CursorLocation = 3
+		oRS.LockType = 3
+		oRS.CursorType = 3
+			
+		on error resume next
+		Set aList = Nothing
+		oRS.Open qList
+		If Not oRS.EOF Then
+			aList = oRS.GetRows()
+		End If
+		oRS.Close
+		on error goto 0
+			
+		Set oRS = Nothing
+	End If
+End Sub
+	
+' defines the type of queries per database
+Sub DefineQueries
+	qList = "select id, creation, label, shortlabel, is_common from tbXML_Languages where tbXML_Languages.is_active = 1"
+	qUpdate = "update tbXML_Languages set language = '%language', short = '%short' where id = %id"
+	qUnsetCommon = "update tbXML_Languages set is_common = '0' where is_common = '1'"
+	qSetCommon = "update tbXML_Languages set is_common = '1' where id = %id"
+	
+	If bOracle Then
+		qDelete = "update tbXML_Languages set label = label || '_del', shortlabel = shortlabel || '_del', is_active = 0 where id in ( %id )"
+		qInsert = "insert into tbXML_Languages ( id, creation, label, shortlabel, is_active ) values ( seq_tbXML_Languages.NextVal, SYSDATE, '%label', '%shortlabel', 1 )"
+	Else
+		qDelete = "update tbXML_Languages set label = label + '_del', shortlabel = shortlabel + '_del', is_active = 0 where id in ( %id )"
+		qInsert = "insert into tbXML_Languages ( creation, label, shortlabel, is_active ) values ( GetDate(), '%label', '%shortlabel', 1 )"
+	End If
+End Sub
+
+' -- constructor
+Sub Initialize
+	bOracle = True
+	Call DefineQueries()
+End Sub
+	
+' --- destructor
+Sub Terminate
+	Set aList = Nothing
+End Sub
+	
+'
+' -- Create Initialize and Terminate points for WSC
+'
+Class CPrivate
+	Private Sub Class_Initialize
+		Call Initialize()
+	End Sub
+	
+	Private Sub Class_Terminate
+		Call Terminate()
+	End Sub
+End Class
+Dim ClassHandler
+Set ClassHandler = new CPrivate
+]]>
+</script>
+
+</component>

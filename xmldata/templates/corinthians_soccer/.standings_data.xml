@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+<table>
+	<header>
+		<groupTitle>Posição</groupTitle>
+	</header>
+	<item>
+		<teamName>Corinthians</teamName>
+		<PG>0</PG>
+		<J>0</J>
+		<V>0</V>
+		<E>0</E>
+		<D>0</D>
+		<GP>0</GP>
+		<GC>0</GC>
+	</item>
+	<footer />
+</table>
+</root>

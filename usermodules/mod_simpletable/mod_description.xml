@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<configuration>
+	<name>Simple Table Editor</name>
+	<internalName>simpletable</internalName>
+	<version>1</version>
+	<revision>0</revision>
+
+	<author>Fabio Akita</author>
+	<creationdate>04/10/2001</creationdate>
+	<lastModified>05/05/2001</lastModified>
+	<modificationAuthor>Fabio Akita</modificationAuthor>
+
+	<startFile>module.asp</startFile>
+	<containerFolder>mod_simpletable</containerFolder>
+
+	<shortDescription>This tool is intended to provide simple linear table manipulation thru a visual interface.</shortDescription>
+</configuration>

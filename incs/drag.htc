@@ -1,0 +1,100 @@
+<!--
+	Drag.HTC
+	IE5 Behavior to handle specific layer-based window dragging thru a title bar
+	
+	Author: akita@psntv.com
+	08/02/2001
+
+	The window must be something like this:
+	
+	<div id="divWindow">
+		<table>
+			<tr>
+				<td class="titlebar">title</td>
+			</tr>
+		</table>
+	</div>
+	
+	Where "titlebar" is the one that handles the click event to move
+	it´s parent div container
+-->
+<EVENT    NAME="ondrag"           ID="drag"      />
+<EVENT    NAME="ondragstart"      ID="dragstart" />
+<EVENT    NAME="ondragend"        ID="dragend"   />
+<EVENT    NAME="onerror"          ID="error"     />
+
+<ATTACH   EVENT="onmouseup"       HANDLER="DoMouseUp"   />
+<ATTACH   EVENT="onmousedown"     HANDLER="DoMouseDown" />
+
+<SCRIPT LANGUAGE="jscript">
+// stores the moveable object (default: 'div' only)
+var oLayer = null;
+// stores the initial (x,y) position
+var iOffsetX, iOffsetY;
+// stores the non-movable objects
+var sIgnore = '-a-input-button-textarea-select';
+
+// handles the mouse movement until the mouseup event
+function DoMouseMove() 
+{
+	oLayer.style.left	= window.event.x - iOffsetX;
+	oLayer.style.top	= window.event.y - iOffsetY;
+	
+	drag.fire();
+}
+
+// handles the end of the drag event
+function DoMouseUp() 
+{
+	detachEvent ("onmousemove", DoMouseMove);
+	releaseCapture();
+	oLayer = null;
+	window.event.srcElement.click();
+	
+	dragend.fire();
+}
+
+// handles the drag starting
+function DoMouseDown() 
+{
+	oLayer = window.event.srcElement;
+	
+	// check if it´s not an invalid object
+	var sTest = '-' + window.event.srcElement.tagName.toLowerCase() + '-';
+	if ( sIgnore.indexOf( sTest ) > -1 ) 
+	{
+		DoMouseUp();
+		return false;
+	}
+	
+	// navigate up to the parent elements to find a 'div' element
+	while ( oLayer.tagName.toLowerCase() != 'div' && oLayer != null ) 
+	{
+		oLayer = oLayer.parentElement;
+	}
+	
+	if ( oLayer == null ) 
+	{
+		DoMouse();
+		return false;
+	}
+
+	// start dragging
+	setCapture();
+
+	iOffsetX = window.event.x - oLayer.style.pixelLeft;
+	iOffsetY = window.event.y - oLayer.style.pixelTop;
+
+	attachEvent ("onmousemove", DoMouseMove);
+	
+	dragstart.fire();
+}
+
+// return error messages
+function ReturnError(sMsg)
+{
+    var oEvent = createEventObject();
+    oEvent.setAttribute("error", sMsg);
+    error.fire(oEvent);
+}
+</SCRIPT>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<configuration>
+	<system/>
+
+	<name>File Cloner</name>
+	<internalName>fileclone</internalName>
+	<version>1</version>
+	<revision>0</revision>
+
+	<author>Fabio Akita</author>
+	<creationdate>05/10/2001</creationdate>
+	<lastModified>05/15/2001</lastModified>
+	<modificationAuthor>Fabio Akita</modificationAuthor>
+
+	<startFile>module.asp</startFile>
+	<containerFolder>mod_clonefile</containerFolder>
+
+	<shortDescription>This tool allows any file to be Cloned (exact copy).</shortDescription>
+</configuration>

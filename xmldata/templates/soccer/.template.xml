@@ -1,0 +1,17 @@
+<template>
+<name>Generic Soccer Template</name>
+
+<page>
+<name>Results Table</name>
+<token>results</token>
+<schema />
+<style />
+</page>
+
+<page>
+<name>Tree-like Results Table</name>
+<token>results_tree</token>
+<style />
+</page>
+
+</template>

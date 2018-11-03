@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+	<module>mod_texteditor</module>
+	<document>
+		<title>Type the title here</title>
+		<subtitle>Type the sub-title here</subtitle>
+		<author>Type your name here</author>
+		<date>01/01/1900</date>
+		<text><![CDATA[]]></text>
+	</document>
+</root>

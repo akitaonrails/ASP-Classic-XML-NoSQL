@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+	<module>mod_texteditor</module>
+	<document>
+		<title>HISTÓRIA</title>
+		<subtitle></subtitle>
+		<author>Akita</author>
+		<date>01/01/1900</date>
+		<text><![CDATA[<P align=center><STRONG>teste teste teste teste teste teste teste teste</STRONG> </P>
+<P>teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste </P>
+<P>teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste </P>
+<OL>
+<LI>teste teste teste teste teste teste </LI>
+<LI>teste teste teste teste teste teste </LI>
+<LI>teste teste teste teste teste teste </LI>
+<LI><U>teste teste teste teste teste teste</U> </LI></OL>
+<P align=center><IMG alt="" hspace=0 src="http://www.psn.com/media/MiscellaneousPhotos/89216beletti051_INTERNA.jpg" align=absMiddle border=0></P>]]></text>
+	</document>
+</root>

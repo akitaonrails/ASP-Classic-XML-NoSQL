@@ -1,0 +1,237 @@
+<HTML>
+<link rel="stylesheet" href="documentation.css">
+
+<p><span class="maintitle">PSN XML Platform </span></p>
+<p>Author: Fabio Akita (<a href="mailto:akita@psntv.com">akita@psntv.com</a>)<br>
+  May/2001</p>
+<p>(documentation for developers)</p>
+<p class="subtitle">Introduction</p>
+<p>The development of this platform followed some very concrete objectives in 
+  order to solve several problems of a variety of degrees. Mainly the problem 
+  concentrates in the use of a very poor database-driven content management system. 
+  As this system totally broken, is very large and difficult to fix, this platform 
+  was made in order to fulfill current emergencial needs while giving more time 
+  to re-project the whole system.</p>
+<p class="subtitle">Problems</p>
+<ol>
+  <li>Buggy table system that is very difficult to update and allows for several 
+    errors to be presented to the customer. The resolutions of such problems are 
+    very punctual and difficult to debug;</li>
+  <li>Limited design choices to fit in the current table model what allows for 
+    several unpredictable errors in both layout design and software construction;</li>
+  <li>There&acute;s no time nor resources to design a complete new content management 
+    system, so this must be a low cost and time effective solution as well as 
+    providing more quality as a whole</li>
+</ol>
+<p class="subtitle">Understandings</p>
+<ol>
+  <li>This is not a simple table edition problem, so the solution doesn&acute;t 
+    relies on the building of a &quot;HTML table editor&quot; software;</li>
+  <li>There should be an easier way for content staff, developers and designers 
+    to have better control on the presentation, construction and update processes;</li>
+  <li>The <b>designers</b> should be able to design whichever they want to see;</li>
+  <li>The <b>developers</b> should be able to have total control over the data 
+    without worring about the rendering methods but only the mid-structuring between 
+    the HTML and the data;</li>
+  <li>The <b>content staff </b>should never know what goes underneath the complex 
+    design and rendering processes and should be able to update the data as quick 
+    as pointing and clicking on it;</li>
+  <li>The development base should be very consistent and methodic so the developers 
+    can have a set of tools and frameworks ready to use for increased productivity 
+    on a variety of situations;</li>
+  <li>The concept of &quot;data&quot; and &quot;layout&quot; should be known as 
+    discrete and independent layers so a &quot;data&quot; file can be easily used 
+    with a variety of &quot;layouts&quot;</li>
+</ol>
+<p class="subtitle">Primary Design Decisions</p>
+<ol>
+  <li>Develop a platform instead of a stand-alone software. This concept means 
+    that the platform should serve as basis for future expantions, though the 
+    system should be scalable;</li>
+  <li>In a first layer, maintain the data itself as static physical files managed 
+    by the OS file system and, at the same time, have the same structure mirrored 
+    in a database where more details could be hold and more operations could be 
+    performed -- as associating sets of files and giving files other properties 
+    than name and type but also author name, description, etc;</li>
+  <li>Use XML as the base of every data storage of the system as it&acute;s a 
+    proven industry accepted standard and already have very mature tools and components 
+    to have increased performance, productivity;</li>
+  <li>Create a second layer of easy navigation that fulfills both the developer 
+    and the content staff needs and gives them all the visual hints needed for 
+    fast understanding;</li>
+  <li>Create a top layer of modules and a framework to create them. Each module 
+    would fulfill a very specific need of the content;</li>
+  <li>As a modular system with a consistent framework, new modules could be developed 
+    very fast;</li>
+  <li>The front-end of the sites that uses those stored data should be developed 
+    with easy, so there should be a parallel layer that allows for fast retrieve 
+    of this data. The easiest way is to have a &quot;shortcut&quot; system that 
+    links both a XML and a Style/Layout file together;</li>
+</ol>
+<p class="subtitle">Basic Architecture</p>
+<ol>
+  <li>main database tables: tbXML_base, tbXML_folders, tbXML_front (respectivelly, 
+    for files, folders and shortcut storage);</li>
+  <li>TXMLSynchro VBScript Class that encapsulates the complex operations of mirroring 
+    file system operations to the database into a very easy to understand interface;</li>
+  <li>TXMLFront VBScript Class that encapsulates the retrieving of XML and it&acute;s 
+    Style files thru a shortcut in the front-end development;</li>
+  <li>An Explorer tool with different features for both developers and content 
+    staff (/devmanager and /usermanager);</li>
+  <li>Developers should have refined control over the file system as the creation 
+    and erasing of files, the edition directly into the XML source code and so 
+    on;</li>
+  <li>Content Staff should not worry about create anything new but edit the content 
+    of the available files using visual tools (/usermodules);</li>
+  <li>A Module Framework should be used as a sub-platform to create new modules;</li>
+  <li>Primarily create 3 modules: to visually edit Simple Tables, Tree-like Tables 
+    and Clone existing files (/mod_simpletable, /mod_treetable and /mod_clonefile);</li>
+  <li>To be worked on later: a way to have a visual manager for shortcuts, a way 
+    to link XML files between them (almost like a dynamic table relation)</li>
+</ol>
+<p class="subtitle">TXMLSynchro at a Glance</p>
+<p>This is a VBClass (so relies in the MS Scripting Engine 5.x or later) that 
+  performs file system operations and mirror the structure to a database table 
+  in a transactional manner. So, theoretically, every file or folder created in 
+  the file system will have a pair as a table row. It encapsulates operations 
+  in the file system and in the tbXML_base, tbXML_folders and tbXML_front tables 
+  (Oracle and MS SQL Server compatible).</p>
+<p>A file row, or a &quot;file object&quot; has several properties not supported 
+  by the native filesystem, as associating a Style and Schema file and having 
+  Author, Responsible and Description data recorded at the creation time.</p>
+<p>Erase operations use a different concept than straight raw deletion: it only 
+  updates the file or folder object&acute;s &quot;is_active&quot; flag and rename 
+  it&acute;s physical file or folder appending a &quot;_deleted&quot; string after 
+  it&acute;s name. To unerase them it&acute;s only a matter of invoking the CreateFile 
+  or CreateFolder methods again. So, instead of creating a brand new file, it 
+  will first check the existence of deleted ones and reuse them.</p>
+<p>The folder table tbXML_folders also doesn&acute;t follow the standard way of 
+  a tree model where each row would represent a node in the tree that have, at 
+  least, the pointer to it&acute;s parent node and a description name. Instead, 
+  the only &quot;parent&quot; nodes available are the ones called &quot;Root&quot;. 
+  Roots define the upper bounds where no operations can be performed above them. 
+  All other folders are recorded with their full paths. This is done because all 
+  the navigational logic of a tree can be performed using the file system itself 
+  and also because it would not be cost effective when there&acute;s a need to 
+  fetch a complete path: each node would result a query to fetch it&acute;s parent 
+  data and so on.</p>
+<p>The following excerpt is based on the source code last updated at 05/16/2001 
+  by akita@psntv.com. It&acute;s the public interface for this Class.</p>
+<pre>	 -- properties
+	void Set Root( String &lt;Complete Path&gt; )
+	String Get Root
+	String Get RootURL
+	void Set Path( String &lt;Local Path from the Root Path above&gt; )
+	String Get Path
+	String Get File
+	int Get FileID
+	int Get FolderID
+	String Get SchemaFile
+	String Get StyleFile
+	int Get SchemaID
+	int Get StyleID
+	void Set Oracle( bool )
+	bool Get Oracle
+	void Set HideDetails( bool )
+	bool Get HideDetails
+	String Get Errors
+	int Set FileFormat
+	int Set LanguageID
+	
+	-- public methods
+	void Connect( *Scripting.FileSystemObject, *ADODB.Connection )
+	bool ChangePath( String &lt;Complete Path&gt; )
+	String FileInfo( String &lt;property name&gt; )
+	String FolderInfo( String &lt;property name&gt; )
+	void GoParent()
+	void ResetLocal()
+	bool CreateRoot( String &lt;Path&gt;, String &lt;pair URL&gt;, String &lt;description&gt; )
+	bool CreateFolder( String &lt;description&gt; )
+	bool CreateFile( String &lt;author&gt;, String &lt;description&gt;, String &lt;responsible&gt;, [ *TXMLSynchro &lt;XSL&gt; | int &lt;XSL ID&gt;], [*TXMLSynchro &lt;Schema&gt; | int &lt;Schema ID&gt; ])
+	bool ReadFile( *String &lt;destination container&gt; )
+	bool WriteFile( *String &lt;original container&gt; )
+	bool DeleteFolder()
+	bool DeleteFile()
+	bool DeleteRoot()
+	void GetRoots( *String &lt;destination container&gt; )
+	void GetFolders( *String &lt;destination container&gt; )
+	void GetFiles( *String &lt;destination container&gt; )
+	void GetDescription( *String &lt;destination container&gt; )
+	bool CreateShortcut( String &lt;shortcut name&gt;, *TXMLSynchro &lt;style object to associate with&gt; )
+	bool GetShortcut( String &lt;shortcut to search&gt;, *TXMLSynchro &lt;style object to return&gt; )
+	bool CreateBaseLink( *TXMLSynchro &lt;style object to associate&gt;, *TXMLSynchro &lt;object to associate&gt; )
+</pre>
+<p>This class is not supposed to be directly used. It supports the base of the 
+  platform and usually only system modules and the author himself will make directly 
+  use of it. </p>
+<p>Anyway, the functionallity is not finished yet, there are several methods under 
+  development but the basic functional set is as presented. The correct way to 
+  use it is:</p>
+<ol>
+  <li>instantiate, Set oSynchro = new TXMLSynchro</li>
+  <li>choose between using Oracle or SQL, oSynchro.Oracle = False (default, Oracle 
+    = True)</li>
+  <li>connect it to a file system and DB connection objects, oSynchro.Connect 
+    oFileSystem, oConnection</li>
+  <li>set a Root folder, oSynchro.Root = &quot;C:\Inetpub\wwwroot\data&quot;</li>
+  <li>set the working folder/file, oSynchro.File = &quot;folder1\file1.xml&quot;</li>
+  <li>if you&acute;re creating, invoke the CreateFile, if you&acute;re reading 
+    from it, use the ReadFile, and so on.</li>
+  <li>NEVER forget to clean up memory, Set oSynchro = Nothing (rule of thumb for 
+    clean programming)</li>
+</ol>
+<pre>
+	Set oSynchro = new TXMLSynchro
+	oSynchro.Connect objFileSystem, objConnection
+	oSynchro.Root = "D:\Inetput\wwwroot\data"
+	oSynchro.Path = "folder1\file1.xml"
+	(...)
+	Set oSynchro = Nothing
+</pre>
+<p>One can have better undertstanding of the database internals by looking closely 
+  at the private method DefineQueries of this class. All SQL commands and queries 
+  are centralized inside this method for easy maintainabilitty and cross-platform 
+  needs.</p>
+<p class="subtitle">TXMLFront at a Glance</p>
+<p>The TXMLSynchro class was first designed to be the only class to manage everything 
+  about this platform, but soon it was clear that it would not fit well to be 
+  used as the front-end interface. That class has around 2000 lines of code and 
+  weight around 50kb. So it would be better to have a smaller light-weight and 
+  easier Class to encapsulate Shortcut read based operations. That&acute;s the 
+  role of TXMLFront.</p>
+<p>This class encapsulates the read operation only of the tbXML_front table. This 
+  table basically stores ID pointers for 2 rows in the tbXML_base table. The first 
+  file is the XML and the other is it&acute;s Layout (in XSL format) for this 
+  particular front-end website. The operation that link these 2 files together 
+  is available in the developer&acute;s explorer-like interface (discussed later) 
+  and is accomplished using the CreateShortcut method of the TXMLSynchro Class.</p>
+<p>While developing a website, the mounter (HTML mounter) would cut the desired 
+  dynamic table as a XSL Style file that would later fit in the XML designed by 
+  the developer. As those 2 files are ready the developer can register them in 
+  the platform and create a Shortcut to get it later.</p>
+<p>In the front-end website in development the developer would follow these steps:</p>
+<ol>
+  <li>instantiate the class, Set oFront = new TXMLFront</li>
+  <li>as before, choose between using Oracle or SQL queries, oFront.Oracle = False 
+    (default, Oracle = True)</li>
+  <li>give it an opened database connection, oFront.ActiveConnection = oConnection</li>
+  <li>now simply give it the shortcut name, oFront.Load( &quot;shortcutname&quot; 
+    )</li>
+  <li>and then give it the object where to render, oFront.Render Response</li>
+  <li>finally, clean up, Set oFront = Nothing</li>
+</ol>
+<pre>
+	Set oFront = new TXMLFront
+	oFront.ActiveConnection = objConnection
+	oFront.Load( "shortcutname" )
+	oFront.Render Response
+	Set oFront = Nothing
+</pre>
+<p>This simple set of 5 lines can dramatically increase maintainability, easy 
+  of use, development cycle and decrease the amount of bugs.There will be no more 
+  need for thousands of unreadable &quot;For&quot;s, &quot;While&quot;s and &quot;Response.Write&quot;s 
+  or &quot;&lt;%=%&gt;&quot;s anymore. Everything will be split off in separated 
+  and organized files and tied together by a simple set of 5 lines that calls 
+  a simple shortcut.</p>
+</HTML>
+

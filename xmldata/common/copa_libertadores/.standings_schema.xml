@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+
+<table>
+	<header>
+		<col>groupTitle</col>
+	</header>
+	<item>
+		<col>teamName</col>
+		<col>PG</col>
+		<col>J</col>
+		<col>V</col>
+		<col>E</col>
+		<col>D</col>
+		<col>GP</col>
+		<col>GC</col>
+	</item>
+	<footer />
+</table>
+
+</root>

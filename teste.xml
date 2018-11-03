@@ -1,0 +1,16 @@
+<xml xmlns:s='uuid:BDC6E3F0-6DA3-11d1-A2A3-00AA00C14882'
+	xmlns:dt='uuid:C2F41010-65B3-11d1-A29F-00AA00C14882'
+	xmlns:rs='urn:schemas-microsoft-com:rowset'
+	xmlns:z='#RowsetSchema'>
+<s:Schema id='RowsetSchema'>
+	<s:ElementType name='row' content='eltOnly' rs:CommandTimeout='30'>
+		<s:AttributeType name='category' rs:number='1' rs:nullable='true' rs:writeunknown='true'>
+			<s:datatype dt:type='string' rs:dbtype='str' dt:maxLength='50'/>
+		</s:AttributeType>
+		<s:extends type='rs:rowbase'/>
+	</s:ElementType>
+</s:Schema>
+<rs:data>
+	<z:row category='countries'/>
+</rs:data>
+</xml>

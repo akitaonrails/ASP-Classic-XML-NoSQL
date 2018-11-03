@@ -1,0 +1,10 @@
+<!ELEMENT root ( header?, node*, footer? )>
+	<!ELEMENT header ( title?, subtitle? )>
+		<!ELEMENT title (#PCDATA)>
+		<!ELEMENT subtitle (#PCDATA)>
+	<!ELEMENT node ( name?, subnode* )>
+		<!ELEMENT name (#PCDATA)>
+		<!ELEMENT subnode (#PCDATA)>
+	<!ELEMENT footer ( caption?, subcaption? )>
+		<!ELEMENT caption (#PCDATA)>
+		<!ELEMENT subcaption (#PCDATA)>

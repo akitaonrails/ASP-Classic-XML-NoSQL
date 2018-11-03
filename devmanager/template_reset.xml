@@ -1,0 +1,11 @@
+<template>
+<name>Template Name</name>
+
+<page>
+	<name>pagename</name>
+	<token>string_identifier</token>
+	<schema />
+	<style />
+</page>
+
+</template>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root>
+
+<table>
+	<header>
+		<col>title</col>
+		<col>subtitle</col>
+	</header>
+	<item>
+		<col>date</col>
+		<col>time</col>
+		<col>name</col>
+	</item>
+	<footer>
+		<col>caption</col>
+		<col>subcaption</col>
+	</footer>
+</table>
+
+</root>

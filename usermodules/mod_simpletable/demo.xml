@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<?xml-stylesheet type="text/xsl" href="demo.xsl"?>
+
+<root>
+<table>
+	<header>
+    	<title>TABELA TESTE</title>
+    	<subtitle>tabela 1</subtitle>
+	</header>
+	<item>
+		<date>24/mar</date>
+		<time>19h00</time>
+		<name>teste</name>
+	</item>
+	<item>
+		<date>25/mar</date>
+		<time>19h00</time>
+		<name>teste 2</name>
+	</item>
+</table>
+
+<table>
+	<header>
+    	<title>TABELA TESTE</title>
+    	<subtitle>tabela 2</subtitle>
+	</header>
+	<item>
+		<date>26/mar</date>
+		<time>18h00</time>
+		<name>teste</name>
+	</item>
+	<item>
+		<date>27/mar</date>
+		<time>18h00</time>
+		<name>teste 2</name>
+	</item>
+	<item>
+		<date>30/mar</date>
+		<time>18h00</time>
+		<name>teste 2</name>
+	</item>
+</table>
+</root>

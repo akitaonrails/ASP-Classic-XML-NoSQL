@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<root><module>mod_simpletable</module><table><header/><item><nome>a</nome><telefone>b</telefone><email>c</email></item><item><nome>a</nome><telefone>b</telefone><email>c</email></item><footer/></table><table><header/><item><nome>aa</nome><telefone>bb</telefone><email>cc</email></item><item><nome>aa</nome><telefone>bb</telefone><email>cc</email></item><item><nome>aa</nome><telefone>bb</telefone><email>cc</email></item><footer/></table></root>

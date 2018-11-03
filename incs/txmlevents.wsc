@@ -1,0 +1,869 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<component>
+
+<registration 
+	progid="PSNXML.TXMLEvents" 
+	description="Encapsulates the logic of copying packaged events thru all root folders. Allows the existence of consistent 'templates'."
+	version="1.0.0.0"
+	/>
+
+<public>
+	<property name="Oracle">
+		<get internalName="Get_Oracle"/>
+		<put internalName="Set_Oracle"/>
+	</property>
+	
+	<property name="Log">
+		<get internalName="Get_Log" />
+	</property>
+
+	<property name="ActiveConnection">
+		<put internalName="Set_ActiveConnection"/>
+	</property>
+
+	<property name="ActiveSynchro">
+		<put internalName="Set_ActiveSynchro"/>
+	</property>
+
+	<property name="ActiveXML">
+		<put internalName="Set_ActiveXML"/>
+	</property>
+
+	<property name="ListEvents">
+		<get internalName="Get_ListEvents" />
+	</property>
+
+	<property name="OverwriteStyles">
+		<get internalName="Get_OverwriteStyles" />
+		<put internalName="Set_OverwriteStyles" />
+	</property>
+	
+	<method name="SetEventRoot">
+		<parameter name="sName" />
+		<parameter name="sPath" />
+	</method>
+	
+	<method name="CreateEvent">
+		<parameter name="sLabel" />
+	</method>
+	
+	<method name="ClipEvents">
+		<parameter name="sLabel" />
+		<parameter name="iRootID" />
+		<parameter name="sIDs" />
+	</method>
+
+	<method name="UnclipEvents">
+		<parameter name="sLabel" />
+		<parameter name="iRootID" />
+		<parameter name="sIDs" />
+	</method>
+
+	<method name="ListClipped">
+		<parameter name="sLabel" />
+		<parameter name="iRootID" />
+	</method>
+
+	<method name="ListUnclipped">
+		<parameter name="sLabel" />
+		<parameter name="iRootID" />
+	</method>
+	
+	<method name="ClipList">
+		<parameter name="iRootID" />
+	</method>
+
+	<method name="DeleteEvent">
+		<parameter name="sLabel" />
+	</method>
+</public>
+
+<implements type="ASP" />
+<script language="VBScript">
+<![CDATA[   
+
+'
+'	TXMLEvents
+'	Encapsulates the logic of copying packaged events thru all root folders;
+'	Allows the existence of consistent "templates"
+'
+'	All packages are defined as folders inside the system-folder "templates"
+'	The folder is considered a template-package if it contains the ".template.xml"
+'	descriptor. (It can be created using the built-in file editor).
+'
+'	The creation management shows up in the Content-staff Explorer as a single button
+'	that requires a simple name that will name all the copies generated from the
+'	template.
+'
+'	By default, every XML and Schema file will be correctly linked together and
+'	grouped in the system-folder "common" folder. Every style file will be spread
+'	across all the other root folders. This means that the same data will be used
+'	from all the root folders with customized front-end interfaces thru the XSL styles
+'
+
+Dim oXML
+Dim oSynchro
+Dim oConn
+Dim bOracle
+
+Dim qInsertPage, qInsertEvent, qInsertPageHelper
+Dim qQuery, qDelete, qQueryClip, qQueryUnclip, qQueryLabels, qInsertClip, qDeleteClip
+Dim qDeleteEvent, qDeleteEventPages, qDeleteListItem, qQueryEvent
+
+Dim cntSchemaFile
+Dim cntStyleFile
+Dim cntXMLFile
+Dim cntCommonFolder
+Dim cntTemplatesFolder
+
+Dim sEventRootPath, sEventRootName
+Dim bForceOverwrite
+
+Dim sLog
+
+Function Get_Oracle
+	Get_Oracle = bOracle
+End Function
+
+' set database		
+Sub Set_Oracle( bFlag )
+	If bFlag Then
+		bOracle = True
+	Else
+		bOracle = False
+	End If
+	Call DefineQueries()
+End Sub
+
+Function Get_Log
+	Get_Log = sLog
+End Function
+
+Sub AddLog( sItem )
+	sLog = sLog & sItem & vbCRLF
+End Sub
+
+' get externally defined ADO connection instance
+Sub Set_ActiveConnection( ByRef objConn )
+	Set oConn = objConn
+End Sub
+
+' get externally defined TXMLSynchro instance
+Sub Set_ActiveSynchro( ByRef objSynchro )
+	Set oSynchro = objSynchro
+End Sub
+
+' get externally defined MSXML DOM instance
+Sub Set_ActiveXML( ByRef objXML )
+	Set oXML = objXML
+End Sub
+
+Function Get_OverwriteStyles
+	Get_OverwriteStyles = bForceOverwrite
+End Function
+
+' set the overwrite style flag
+Sub Set_OverwriteStyles( bBool )
+	If bBool Then
+		bForceOverwrite = True
+	End If
+End Sub
+
+' event creation is performed under all roots, this directive
+' overrides the creation to a single root
+Sub SetEventRoot( sName, sPath )
+	sEventRootName = sName
+	sEventRootPath = sPath
+End Sub
+
+' return an XML-based list of available events
+Function Get_ListEvents
+	If IsNull( oConn ) Then
+		Get_ListEvents = Null
+		Exit Function
+	End If
+	
+	Dim oRS
+	Set oRS = Server.CreateObject( "ADODB.Recordset" )
+	oRS.ActiveConnection = oConn
+	oRS.CursorType = 3
+	oRS.CursorLocation = 3
+	oRS.LockType = 3
+	oRS.Open qQuery
+	
+	Dim sReturn
+	sReturn = "<list>" & vbCRLF
+	While Not oRS.EOF
+		sReturn = sReturn & _
+		"<event>" & vbCRLF & _
+		"	<id>"		& oRS( "id" )		& "</id>" & vbCRLF & _
+		"	<label>"	& oRS( "label" )	& "</label>" & vbCRLF & _
+		"</event>" & vbCRLF
+		oRS.MoveNext
+	Wend
+	sReturn = sReturn & "</list>"
+	oRS.Close
+	Set oRS = Nothing
+	
+	Get_ListEvents = sReturn
+End Function
+
+' hide an event
+Function DeleteEvent( sIDs )
+	Call AddLog( "Enter: DeleteEvent" )
+	If IsNull( oConn ) Then
+		DeleteEvent = False
+		Exit Function
+	End If
+	
+	Dim sSQL
+	sSQL = Replace( qDelete, "%ids", sIDs )
+	
+	on error resume next
+	oConn.BeginTrans
+	oConn.Execute sSQL
+	If oConn.Errors.Count > 0 Then
+		Call AddLog( "SQL bug: " & sSQL )
+		For Each oErr in oConn.Errors
+			Call AddLog( "SQL bug: " & oErr.description )
+		Next
+		oConn.RollbackTrans
+		DeleteEvent = False
+	Else
+		oConn.CommitTrans
+		DeleteEvent = True
+	End If
+	on error goto 0
+End Function
+
+' generate an event from a template thru all the root folders
+Function CreateEvent( sLabel )
+	Call AddLog( "Enter: CreateEvent" )
+	CreateEvent = True		' default
+
+	If IsEmpty( sLabel ) or IsNull( oConn ) or IsNull( oSynchro ) or IsNull( oXML ) Then
+		Call AddLog( "Invalid Parameters" )
+		CreateEvent = False
+		Exit Function
+	End If
+	
+	If InStr( oSynchro.Path, "template.xml" ) < 0 Then
+		Call AddLog( "Template doesn´t have .template.xml script" )
+		CreateEvent = False
+		Exit Function
+	End If
+	
+	' save the .template.xml full path
+	Dim oList, intCount, intItem, intTmp
+	Dim sMainRoot
+	Dim sMainPath
+	sMainRoot = oSynchro.Root
+	sMainPath = oSynchro.Path
+	
+	Dim sFolder
+	sFolder = "event_" & sLabel
+	
+'--- 1st step: get the root folder paths (storage: aRoots)
+	Dim aRoots
+	Dim sPath, sName
+	Dim oFolder
+	Dim hasTemplate
+	hasTemplate = False
+
+	cntTemplatesFolder = LCase( Trim( cntTemplatesFolder ) )
+	cntCommonFolder = LCase( Trim( cntCommonFolder ) )
+
+	on error resume next	
+	Call oSynchro.GetRoots( sRoots )
+	oXML.LoadXML( sRoots )
+	If Err.number = 0 Then
+		Set oList = oXML.documentElement.getElementsByTagName( "folder" )
+		ReDim aRoots( oList.length - 1 )
+			
+		intTmp = 1
+		For intCount = 0 To UBound( aRoots ) 
+			sPath = ""
+			sName = ""
+			For intItem = 0 To oList( intCount ).childNodes.length - 1
+				Set oFolder = oList( intCount ).childNodes( intItem )
+				If oFolder.tagName = "path" Then
+					sPath = oFolder.text
+				ElseIf oFolder.tagName = "name" Then
+					sName = LCase( Trim( oFolder.text ) )
+				End If
+			Next
+
+			If sName <> cntTemplatesFolder and sName <> cntCommonFolder Then
+				aRoots( intTmp ) = Array( sName, sPath )
+				intTmp = intTmp + 1
+			Else
+				If sName = cntCommonFolder Then
+					aRoots( 0 ) = Array( sName, sPath )
+				Else
+					hasTemplate = True
+				End If
+			End If
+		Next
+			
+		If hasTemplate Then
+			ReDim Preserve aRoots( intTmp - 1 )
+		End If
+
+		Set oFile = Nothing
+		Set oList = Nothing
+	End If
+	on error goto 0
+
+	If Not IsArray( aRoots ) Then
+		Call AddLog( "Invalid paths: no defined Roots" )
+		CreateEvent = False
+		Exit Function
+	End If
+	
+	If IsNull( aRoots( 0 ) ) Then
+		Call AddLog( "No common folder" )
+		CreateEvent = False
+		Exit Function
+	End If	
+
+	' apply to a single root instead of all (SetEventRoot method)
+	If Not IsEmpty( sEventRootName ) Then
+		ReDim Preserve aRoots( 1 )
+		aRoots( 1 ) = Array( sEventRootName, sEventRootPath )
+	End If
+
+'--- 2nd step: read the .template script (storage: aFiles)
+	Dim aFiles
+	Dim sToken, hasStyle, hasSchema
+	Dim oFile
+	Dim sTemplateName
+	
+	on error resume next
+	oXML.load( oSynchro.Path )
+	If Err.number = 0 Then
+		If oXML.documentElement.firstChild.tagName = "name" Then
+			sTemplateName = oXML.documentElement.firstChild.text
+		End If
+		Set oList = oXML.documentElement.getElementsByTagName( "page" )
+		ReDim aFiles( oList.length - 1 )
+		For intCount = 0 To UBound( aFiles ) 
+			sToken = ""
+			hasStyle = False
+			hasSchema = False
+			For intItem = 0 To oList( intCount ).childNodes.length - 1
+				Set oFile = oList( intCount ).childNodes( intItem )
+				If oFile.tagName = "token" Then
+					sToken = oFile.text
+				ElseIf oFile.tagName = "schema" Then
+					hasSchema = True
+				ElseIf oFile.tagName = "style" Then
+					hasStyle = True
+				End If
+			Next
+			aFiles( intCount ) = Array( sToken, hasStyle, hasSchema )
+		Next
+		Set oFile = Nothing
+		Set oList = Nothing
+	End If
+	on error goto 0
+	
+	If Not IsArray( aFiles ) Then
+		Call AddLog( "Invalid Path: no defined template files" )
+		CreateEvent = False
+		Exit Function
+	End If
+
+	' instantiate space for the sql commands
+	Dim aSQLQueue
+	Dim intSQL
+	
+	intItem = 0
+	For intCount = 0 To UBound( aFiles ) 
+		If aFiles( intCount )( 1 ) Then
+			intItem = intItem + 1
+		End If
+	Next
+	
+	intTmp = ( UBound( aRoots ) * intItem ) + 2		' 2 is a simple security boundary
+	ReDim aSQLQueue( intTmp )
+	aSQLQueue( 1 ) = qInsertPageHelper
+	intSQL = 2
+
+'--- 3rd step: create the folders through all the root folders
+	on error resume next
+	For intCount = 0 To UBound( aRoots )
+		oSynchro.Root = aRoots( intCount )( 1 )
+		oSynchro.Path = "\" & sFolder
+
+		If oSynchro.CreateFolder( sLabel & vbCRLF & "( created from template " & sTemplateName & " )" ) Then
+			Call AddLog( "Folder created: " & oSynchro.Path & " - " & sTemplateName )
+		Else
+			Call AddLog( "Failed Folder creation: " & oSynchro.Path & " - " & sTemplateName  )
+		End If
+	Next
+	on error goto 0
+
+'--- 4th step: start iterating thru the aFiles and aRoots / build the clones
+	Dim sBufferXML, sBufferXSL, sBufferSchema
+	
+	Dim oSchema
+	Set oSchema = Server.CreateObject( "PSNXML.TXMLSynchro" )
+	Call oSchema.Connect ( oSynchro.FileSystem, oSynchro.Connection )
+	oSchema.Oracle = oSynchro.Oracle
+
+	Dim sXMLKey, sXSLKey
+	sXMLKey = ""	
+	sXSLKey = ""
+
+	For intCount = 0 To UBound( aFiles )
+		oSynchro.Root = sMainRoot
+		oSynchro.Path = "\" & sMainPath
+		
+		' reset buffers
+		sBufferXML = ""
+		sBufferXSL = ""
+		sBufferSchema = ""
+		
+		' read the content of the template files
+		oSynchro.Path = "." & aFiles( intCount )( 0 ) & cntXMLFile
+		If oSynchro.ReadFile( sBufferXML ) Then
+			Call AddLog( "File Read: " & oSynchro.Path )
+		
+			' optional schema file
+			If aFiles( intCount )( 2 ) Then
+				oSynchro.Path = "." & aFiles( intCount )( 0 ) & cntSchemaFile
+				If Not oSynchro.ReadFile( sBufferSchema ) Then
+					Call AddLog( "Failed ReadFile: " & oSynchro.Path )
+				Else
+					Call AddLog( "File Read: " & oSynchro.Path )
+				End If
+			End If
+
+			' optional style file
+			If aFiles( intCount )( 1 ) Then
+				oSynchro.Path = "." & aFiles( intCount )( 0 ) & cntStyleFile
+				If Not oSynchro.ReadFile( sBufferXSL ) Then
+					Call AddLog( "Failed ReadFile: " & oSynchro.Path )
+				Else
+					Call AddLog( "File Read: " & oSynchro.Path )
+				End If
+			End If
+		Else
+			Call AddLog( "Failed ReadFile: " & oSynchro.Path )
+		End If
+
+		' try to write the template content to the new clones
+		For intItem = 0 To UBound( aRoots )
+			oSynchro.Root = aRoots( intItem )( 1 )
+			oSynchro.Path = "\" & sFolder
+
+			If sBufferXML <> "" Then
+				If aRoots( intItem )( 0 ) = cntCommonFolder Then
+					' create the xml data file
+					oSynchro.Path = aFiles( intCount )( 0 ) & cntXMLFile
+					If oSynchro.CreateFile( "template", aFiles( intCount )( 0 ) & " data file", "template", Null, Null ) Then
+						Call AddLog( "File created: " & oSynchro.Path & " - " & oSynchro.FileID )
+						sXMLKey = sXMLKey & aFiles( intCount )( 0 ) & "||" & oSynchro.FileID & "||" & oSynchro.RootID & "||"
+						If oSynchro.FileInfo( "size" ) = 0 Then
+							If Not oSynchro.WriteFile( sBufferXML ) Then
+								Call AddLog( "Failed WriteFile: " & oSynchro.Path )
+							Else
+								Call AddLog( "Write File: " & oSynchro.Path )
+							End If
+						End If
+
+						' create the schema file
+						If sBufferSchema <> "" Then
+							oSchema.Root = oSynchro.Root
+							oSchema.Path = oSynchro.Path 
+							oSchema.Path = "." & aFiles( intCount )( 0 ) & cntSchemaFile
+							If oSchema.CreateFile( "template", aFiles( intCount )( 0 ) & " schema file", "template", Null, Null ) Then
+								Call AddLog( "File created: " & oSchema.Path & " - " & oSchema.FileID )
+								
+								If oSchema.FileInfo( "size" ) = 0 Then
+									If Not oSchema.WriteFile( sBufferSchema ) Then
+										Call AddLog( "Failed WriteFile: " & oSchema.Path )
+									Else
+										Call AddLog( "Write File: " & oSchema.Path )
+									End If
+								End If
+								
+								' create the association between the xml and schema
+								If oSynchro.CreateBaseLink( Null, oSchema ) Then
+									Call AddLog( "Base Link created: " & oSynchro.Path & " - " & oSchema.Path )
+								Else
+									Call AddLog( "Failed Base Link: " & oSynchro.Path & " - " & oSchema.Path )
+								End If
+							Else
+								Call AddLog( "Failed File creation: " & oSchema.Path )
+							End If
+						Else
+							Call AddLog( "Schema Buffer empty" )
+						End If
+					Else
+						Call AddLog( "Failed File creation: " & oSynchro.Path )
+					End If
+				Else
+					' create the style file
+					If sBufferXSL <> "" Then
+						oSynchro.Path = "." & aFiles( intCount )( 0 ) & cntStyleFile
+						If oSynchro.CreateFile( "template", aFiles( intCount )( 0 ) & " style file", "template", Null, Null ) Then
+							Call AddLog( "File created: " & oSynchro.Path & " - " & oSynchro.FileID )
+							sXSLKey = sXSLKey & aFiles( intCount )( 0 ) & "||" & oSynchro.FileID & "||" & oSynchro.RootID & "||"
+							
+							If oSynchro.FileInfo( "size" ) = 0 or bForceOverwrite Then
+								If Not oSynchro.WriteFile( sBufferXSL ) Then
+									Call AddLog( "Failed WriteFile: " & oSynchro.Path )
+								Else
+									Call AddLog( "Write File: " & oSynchro.Path )
+								End If
+							End If
+						Else
+							Call AddLog( "Failed File creation: " & oSynchro.Path )
+						End If
+					Else
+						Call AddLog( "Style Buffer empty" )
+					End If
+				End If
+			Else
+				Call AddLog( "XML Buffer empty" )
+			End If
+		Next
+	Next
+
+'--- 5th step: create the links between styles and xmls
+
+	' build the sql commands using all collected data
+	on error resume next
+	Dim aXML, aXSL
+	sXMLKey = Left( sXMLKey, Len( sXMLKey ) - 2 )
+	sXSLKey = Left( sXSLKey, Len( sXSLKey ) - 2 )
+	aXML = Split( sXMLKey, "||" )
+	aXSL = Split( sXSLKey, "||" )
+	If Err.number <> 0 Then
+		Call AddLog( "key parser: " & Err.description )
+		aXML = null
+		aXSL = null
+	End If
+	on error goto 0
+
+	If IsArray( aXML ) and IsArray( aXSL ) Then
+		aSQLQueue( 0 ) = Replace( qInsertEvent, "%label", sLabel )
+		
+		For intCount = 0 To UBound( aXSL ) step 3
+			aSQLQueue( intSQL ) = Replace( qInsertPage, "%xsl_id", aXSL( intCount + 1 ) )
+			aSQLQueue( intSQL ) = Replace( aSQLQueue( intSQL ), "%root_id", aXSL( intCount + 2 ) )
+			aSQLQueue( intSQL ) = Replace( aSQLQueue( intSQL ), "%label", aXSL( intCount ) )
+			
+			For intItem = 0 To UBound( aXML ) step 3
+				If aXML( intItem ) = aXSL( intCount ) Then
+					aSQLQueue( intSQL ) = Trim( Replace( aSQLQueue( intSQL ), "%xml_id", aXML( intItem + 1 ) ) )
+					Exit For
+				End If
+			Next
+			intSQL = intSQL + 1
+		Next
+	
+		' execute all generated sql commands
+		on error resume next
+		oConn.BeginTrans
+		If Not bOracle Then
+			' batch execution for SQL Server
+			Dim sSQL
+			For intCount = 0 To UBound( aSQLQueue )
+				If aSQLQueue( intCount ) <> "" and Not IsEmpty( aSQLQueue( intCount ) ) and Not IsNull( aSQLQueue( intCount ) ) Then
+					Call AddLog( "SQL: " & aSQLQueue( intCount ) )
+					sSQL = sSQL & aSQLQueue( intCount ) & " ; "
+				End If
+			Next
+			oConn.Execute sSQL
+		Else
+			' one command at a time kind, Oracle execution
+			For intCount = 0 To UBound( aSQLQueue )
+				If aSQLQueue( intCount ) <> "" and Not IsEmpty( aSQLQueue( intCount ) ) and Not IsNull( aSQLQueue( intCount ) ) Then
+					Call AddLog( "SQL: " & aSQLQueue( intCount ) )
+					oConn.Execute aSQLQueue( intCount )
+				End If
+			Next
+		End If
+		If oConn.Errors.Count > 0 Then
+			For Each oErr in oConn.Errors
+				Call AddLog( "SQL problem: " & oErr.description )
+			Next
+			oConn.RollbackTrans
+			CreateEvent = False
+		Else
+			Call AddLog( "SQL: OK" )
+			oConn.CommitTrans
+			CreateEvent = True
+		End If
+		Set oCommand = Nothing
+		on error goto 0
+	End If
+End Function
+
+' associate an event with a list
+Function ClipEvents( sLabel, iRootID, sIDs )
+	Call AddLog( "Enter: ClipEvent" )
+	If IsNull( oConn ) Then
+		ClipEvents = False
+		Exit Function
+	End If
+	
+	If IsEmpty( sLabel ) or IsEmpty( iRootID ) or IsEmpty( sIDs ) Then
+		ClipEvents = False
+		Exit Function
+	End If
+	
+	Dim aTmp, intCount, sSQL
+	aTmp = Split( sIDs, "," )
+	For intCount = 0 To UBound( aTmp )
+		aTmp( intCount ) = Trim( aTmp( intCount ) )
+		If aTmp( intCount ) <> "" Then
+			aTmp( intCount ) = Replace( qInsertClip, "%event_id", aTmp( intCount ) )
+			aTmp( intCount ) = Replace( aTmp( intCount ), "%label", sLabel )
+			aTmp( intCount ) = Replace( aTmp( intCount ), "%root_id", iRootID )
+		End If
+	Next
+	
+	on error resume next
+	oConn.BeginTrans
+	For Each sSQL in aTmp
+		If sSQL <> "" Then
+			oConn.Execute sSQL
+			Call AddLog( "SQL: " & sSQL )
+		End If
+	Next
+	If oConn.Errors.Count > 0 Then
+		For Each oErr in oConn.Errors
+			Call AddLog( "SQL bug: " & oErr.description )
+		Next
+		oConn.RollbackTrans
+		ClipEvents = False
+	Else
+		oConn.CommitTrans
+		ClipEvents = True
+	End If
+	on error goto 0
+		
+End Function
+
+' delete an event from a list
+Function UnclipEvents( sLabel, iRootID, sIDs )
+	Call AddLog( "Enter: UnclipEvent" )
+	If IsNull( oConn ) Then
+		UnclipEvents = False
+		Exit Function
+	End If
+
+	If IsEmpty( sLabel ) or IsEmpty( iRootID ) or IsEmpty( sIDs ) Then
+		UnclipEvents = False
+		Exit Function
+	End If
+	
+	Dim sSQL
+	sSQL = Replace( qDeleteClip, "%label", sLabel )
+	sSQL = Replace( sSQL, "%root_id", iRootID )
+	sSQL = Replace( sSQL, "%ids", sIDs )
+	
+	on error resume next
+	oConn.BeginTrans
+	oConn.Execute sSQL
+	Call AddLog( "SQL: " & sSQL )
+	If oConn.Errors.Count > 0 Then
+		For Each oErr in oConn.Errors
+			Call AddLog( "SQL bug: " & oErr.description )
+		Next
+		oConn.RollbackTrans
+		UnclipEvents = False
+	Else
+		oConn.CommitTrans
+		UnclipEvents = True
+	End If
+	on error goto 0
+End Function
+
+' mask the ListHelper function for clipped list
+Function ListClipped( sLabel, iRootID )
+	Call AddLog( "Enter: ListClipped" )
+	ListClipped = ListHelper( sLabel, iRootID, 1 )
+End Function
+
+' mask the ListHelper function for unclipped list
+Function ListUnclipped( sLabel, iRootID )
+	Call AddLog( "Enter: ListUnclipped" )
+	ListUnclipped = ListHelper( sLabel, iRootID, 2 )
+End Function
+
+' mask the ListHelper function for labels
+Function ClipList( iRootID )
+	Call AddLog( "Enter: ClipList" )
+	ClipList = ListHelper( "", iRootID, 3 )
+End Function
+
+' list all the clipped or unclipped events of a single list in xml format
+Function ListHelper( sLabel, iRootID, iClipped )
+	If IsNull( oConn ) Then
+		ListHelper = Null
+		Exit Function
+	End If
+	
+	If IsEmpty( sLabel ) or IsEmpty( iRootID ) Then
+		ListHelper = Null
+		Exit Function
+	End If
+	
+	' choose which query to use
+	Dim oRS, sSQL, sReturn
+	If iClipped = 1 Then
+		sSQL = qQueryClip
+	ElseIf iClipped = 2 Then
+		sSQL = qQueryUnclip
+	Else
+		sSQL = qQueryLabels
+	End If
+	sSQL = Replace( sSQL, "%label", sLabel )
+	sSQL = Replace( sSQL, "%root_id", iRootID )
+	Call AddLog( "SQL: " & sSQL )
+	
+	Set oRS = Server.CreateObject( "ADODB.Recordset" )
+	oRS.ActiveConnection = oConn
+	oRS.CursorLocation = 3
+	oRS.CursorType = 3
+	oRS.LockType = 3
+
+	oRS.Open sSQL
+	sReturn = "" 
+	While Not oRS.EOF
+		sReturn = sReturn & _
+		"<clip>" & vbCRLF & _
+		"	<id>" & oRS( "id" ) & "</id>" & vbCRLF & _
+		"	<label>" & oRS( "label" ) & "</label>" & vbCRLF & _
+		"</clip>" & vbCRLF
+		oRS.MoveNext
+	Wend
+	Set oRS = Nothing
+	
+	If sReturn <> "" Then
+		sReturn = "<list>" & vbCRLF & sReturn & "</list>"
+	End If
+	
+	ListHelper = sReturn
+End Function
+
+Function DeleteEvent( sLabel )
+	Call AddLog( "Enter: DeleteEvent" )
+	Dim sSQL, intEventID
+	DeleteEvent = False
+	
+	sSQL = Replace( qQueryEvent, "%label", sLabel )
+	Set oRS = Server.CreateObject( "ADODB.Recordset" )
+	oRS.ActiveConnection = oConn
+	oRS.CursorLocation = 3
+	oRS.CursorType = 3
+	oRS.LockType = 3
+
+	Call AddLog( "SQL Query: " & sSQL )
+	oRS.Open sSQL
+	If Not oRS.EOF Then
+		intEventID = oRS( "id" )
+	End If
+	Set oRS = Nothing
+	
+	If Not IsNull( intEventID ) Then
+		on error resume next
+		oConn.BeginTrans
+		
+		' delete from all categories
+		sSQL = Replace( qDeleteListItem, "%event_id", intEventID )
+		Call AddLog( "SQL: " & sSQL )
+		oConn.Execute sSQL
+		
+		' delete all pages first
+		sSQL = Replace( qDeleteEventPages, "%event_id", intEventID )
+		Call AddLog( "SQL: " & sSQL )
+		oConn.Execute sSQL
+		
+		' delete the event
+		sSQL = Replace( qDeleteEvent, "%label", sLabel )
+		Call AddLog( "SQL: " & sSQL )
+		oConn.Execute sSQL
+		
+		If oConn.Errors.Count > 0 Then
+			For Each oError in oConn.Errors
+				Call AddLog( "SQL Error: " & oError.description )
+			Next
+			oConn.RollbackTrans
+		Else
+			oConn.CommitTrans
+			DeleteEvent = True
+		End If
+		on error goto 0
+	End If
+End Function
+
+' declare the global queries and sql commands
+Sub DefineQueries
+	qQuery = "select id, label from tbXML_Events where is_active = 1 order by label"
+	qDelete = "update tbXML_Events set is_active = 0 where id in ( %ids )"
+	qQueryClip = "select a.id, a.label from tbXML_Events a, tbXML_EventsList b where a.id = b.event_id and a.is_active = 1 and b.label = '%label' and b.root_id = %root_id order by a.label"
+	qQueryUnclip = "select id, label from tbXML_Events where is_active = 1 and id not in ( select event_id from tbXML_EventsList where label = '%label' and root_id = %root_id ) order by label"
+	qDeleteClip = "delete from tbXML_EventsList where label = '%label' and root_id = %root_id and event_id in ( %ids ) "
+	qQueryLabels = "select distinct label, '' as id from tbXML_EventsList where root_id = %root_id order by label"
+
+	qDeleteEvent = "delete from tbXML_Events where label = '%label'"
+	qDeleteEventPages = "delete from tbXML_EventPages where event_id = %event_id"
+	qDeleteListItem = "delete from tbXML_EventsList where event_id = %event_id"
+	qQueryEvent = "select id from tbXML_Events where label = '%label'"
+
+	If bOracle Then
+		qInsertEvent = "insert into tbXML_Events ( id, label, is_active ) values ( seq_tbXML_Events.NextVal, '%label', 1 )"
+		qInsertPageHelper = ""
+		qInsertPage = "insert into tbXML_EventPages( id, label, event_id, xml_id, xsl_id, root_id ) values ( seq_tbXML_EventPages.NextVal, '%label', seq_tbXML_Events.CurrVal, %xml_id, %xsl_id, %root_id )"
+		
+		qInsertClip = "insert into tbXML_EventsList ( id, label, event_id, root_id ) values ( seq_tbXML_EventsList.NextVal, '%label', %event_id, %root_id )"
+	Else
+		qInsertEvent = "insert into tbXML_Events ( label, is_active ) values ( '%label', 1 )"
+		qInsertPageHelper = "declare @tmp as decimal ; set @tmp = @@IDENTITY"
+		qInsertPage = "insert into tbXML_EventPages( label, event_id, xml_id, xsl_id, root_id ) values ( '%label', @tmp, %xml_id, %xsl_id, %root_id )"
+		
+		qInsertClip = "insert into tbXML_EventsList ( label, event_id, root_id ) values ( '%label', %event_id, %root_id )"
+	End If
+End Sub
+
+' mimics a class constructor
+Sub Initialize
+	cntSchemaFile		= "_schema.xml"
+	cntStyleFile		= "_style.xsl"
+	cntXMLFile			= "_data.xml"
+	cntCommonFolder		= "common"
+	cntTemplatesFolder	= "templates"
+	bForceOverwrite		= False
+
+	sLog = ""
+	bOracle = True
+	Call DefineQueries
+End Sub
+	
+' mimics a class destructor
+Sub Terminate
+End Sub
+
+'
+' -- Create Initialize and Terminate points for WSC
+'
+Class CPrivate
+	Private Sub Class_Initialize
+		Call Initialize()
+	End Sub
+	
+	Private Sub Class_Terminate
+		Call Terminate()
+	End Sub
+End Class
+Dim ClassHandler
+Set ClassHandler = new CPrivate
+]]>
+</script>
+
+</component>

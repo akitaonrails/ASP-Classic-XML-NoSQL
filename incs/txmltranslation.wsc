@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<component>
+
+<registration 
+	progid="PSNXML.TXMLTranslation" 
+	description="Encapsulates a simple Translation engine"
+	version="1.0.0.0"
+	/>
+
+<public>
+	<property name="Oracle">
+		<get internalName="Get_Oracle"/>
+		<put internalName="Set_Oracle"/>
+	</property>
+
+	<property name="ActiveConnection">
+		<put internalName="Set_ActiveConnection"/>
+	</property>
+
+	<property name="ActiveXML">
+		<get internalName="Get_ActiveXML"/>
+		<put internalName="Set_ActiveXML"/>
+	</property>
+
+	<property name="PersistData">
+		<put internalName="Set_PersistData"/>
+		<get internalName="Get_PersistData"/>
+	</property>
+
+	<property name="Source">
+		<get internalName="Get_Source"/>
+	</property>
+
+	<property name="Destination">
+		<get internalName="Get_Destination"/>
+	</property>
+		
+	<method name="AddToken">
+		<parameter name="sSource" />
+		<parameter name="sDest" />
+		<parameter name="sOriginal" />
+		<parameter name="sTranslation" />
+		<parameter name="sCategory" />
+	</method>
+
+	<method name="UpdateToken">
+		<parameter name="iID" />
+		<parameter name="sOriginal" />
+		<parameter name="sTranslation" />
+	</method>
+
+	<method name="DeleteAll">
+		<parameter name="sIDs" />
+	</method>
+
+	<method name="DeleteCategory">
+		<parameter name="sSource" />
+		<parameter name="sDest" />
+		<parameter name="sCategory" />
+	</method>
+
+	<method name="ListCategories">
+		<parameter name="sSource" />
+		<parameter name="sDest" />
+	</method>
+
+	<method name="ListTokens">
+		<parameter name="sSource" />
+		<parameter name="sDest" />
+		<parameter name="sCategory" />
+	</method>
+	
+	<method name="Translate">
+		<parameter name="sSource" />
+		<parameter name="sDest" />
+		<parameter name="sCategory" />
+		<parameter name="sBuffer" />
+	</method>
+	
+</public>
+
+<implements type="ASP" />
+<script language="VBScript">
+<![CDATA[   
+
+Const adPersistXML = 1
+
+Dim oConn
+Dim oXML
+Dim isOracle
+Dim isPersistData
+
+Dim strSource
+Dim strsDest
+
+Dim qInsert, qDeleteAll, qDeleteCategory
+Dim qListCategories, qListTokens, qQueryTokens
+Dim qUpdateToken
+
+' return the database current setting
+Function Get_Oracle
+	Get_Oracle = isOracle
+End Function
+
+' set the current sql queries
+Sub Set_Oracle( ByVal bOracle )
+	If bOracle Then
+		isOracle = True
+	Else
+		isOracle = False
+	End If
+	Call DefineQueries()
+End Sub
+
+' connect to externally created filesystem and database objects
+Sub Set_ActiveConnection( ByRef oDB )
+	Set oConn = oDB
+End Sub
+
+Sub Set_ActiveXML( ByRef objXML )
+	Set oXML = objXML
+End Sub
+
+Function Get_ActiveXML
+	Set Get_ActiveXML = oXML
+End Function
+
+Function Set_PersistData( bPersist )
+	If Not bPersist then
+		isPersistData = False
+	Else
+		isPersistData = True
+	End If
+End Function
+
+Function Get_PersistData
+	Get_PersistData = isPersistData
+End Function
+
+Function Get_Source
+	Get_Source = strSource
+End Function
+
+Function Get_Destination
+	Get_Destination = strDest
+End Function
+
+' add a new translation directive
+Function AddToken( sSource, sDest, sOriginal, sTranslation, sCategory )
+	' check parameters: notice that the translation and the category can be empty indeed
+	If IsNull( oConn ) or IsEmpty( sSource ) or IsEmpty( sDest ) or IsEmpty( sOriginal ) Then
+		AddToken = False
+		Exit Function
+	End If
+	
+	' fast clean-up
+	sOriginal = Trim( Replace( sOriginal, "'", "\'", 1, -1 ) )
+	sTranslation = Trim( Replace( sTranslation, "'", "\'", 1, -1 ) )
+	sCategory = LCase( Trim( Replace( sCategory, "'", "", 1, -1 ) ) )
+	
+	' build sql
+	Dim sSQL
+	sSQL = Replace( qInsert, "%source", Trim( sSource ) )
+	sSQL = Replace( sSQL, "%dest", Trim( sDest ) )
+	sSQL = Replace( sSQL, "%original", sOriginal )
+	sSQL = Replace( sSQL, "%translation", sTranslation )
+	sSQL = Replace( sSQL, "%category", sCategory )
+	
+	AddToken = DBHelper( sSQL )
+End Function
+
+' update the selected token
+Function UpdateToken( iID, sOriginal, sTranslation )
+	' check parameters: notice that the translation and the category can be empty indeed
+	If IsNull( oConn ) or IsEmpty( sOriginal ) Then
+		UpdateToken = False
+		Exit Function
+	End If
+	
+	' fast clean-up
+	sOriginal = Trim( Replace( sOriginal, "'", "\'", 1, -1 ) )
+	sTranslation = Trim( Replace( sTranslation, "'", "\'", 1, -1 ) )
+	
+	' build sql
+	Dim sSQL
+	sSQL = Replace( qUpdateToken, "%original", sOriginal )
+	sSQL = Replace( sSQL, "%translation", sTranslation )
+	sSQL = Replace( sSQL, "%id", iID )
+	
+	UpdateToken = DBHelper( sSQL )
+End Function
+
+' make the selected translation unavailable
+Function DeleteAll( sIDs )
+	If IsNull( sIDs ) Then
+		DeleteAll = False
+		Exit Function
+	End If
+	
+	Dim sSQL
+	sSQL = Replace( qDeleteAll, "%ids", sIDs )
+	
+	DeleteAll = DBHelper( sSQL )
+End Function
+
+' make an entire category unavailable
+Function DeleteCategory( sSource, sDest, sCategory )
+	If IsNull( oConn ) or IsEmpty( sSource ) or IsEmpty( sDest ) Then
+		DeleteCategory = False
+		Exit Function
+	End If
+
+	sCategory = Trim( Replace( sCategory, "'", "", 1, -1 ) )
+	
+	Dim sSQL
+	sSQL = Replace( qDeleteCategory, "%category", sCategory )
+	sSQL = Replace( qDeleteCategory, "%source", Trim( sSource ) )
+	sSQL = Replace( qDeleteCategory, "%dest", Trim( sDest ) )
+	
+	DeleteCategory = DBHelper( sSQL )
+End Function
+
+' private method for the previous methods
+Function DBHelper( sSQL )
+	If IsEmpty( sSQL ) or IsNull( oConn ) Then
+		DBHelper = False
+		Exit Function
+	End If
+
+	on error resume next
+	oConn.BeginTrans
+	oConn.Execute sSQL
+	If oConn.Errors.Count > 0 Then
+		oConn.RollbackTrans
+		DBHelper = False
+	Else
+		oConn.CommitTrans
+		DBHelper = True
+	End If
+	on error goto 0
+End Function
+
+' list all available categories of a class ( source language + destination language ) in xml format
+Function ListCategories( sSource, sDest )
+	If IsEmpty( sSource ) or IsEmpty( sDest ) Then
+		Exit Function
+	End If
+	
+	Dim sSQL
+	sSQL = Replace( qListCategories, "%source", Trim( sSource ) )
+	sSQL = Replace( sSQL, "%dest", Trim( sDest ) )
+	
+	Dim oRS
+	Set oRS = Server.CreateObject( "ADODB.Recordset" )
+	oRS.ActiveConnection = oConn
+
+	Dim sReturn
+	sReturn = ""
+	If Not isPersistData Then
+		oRS.CursorLocation = 3
+		oRS.CursorType = 3
+		oRS.LockType = 3
+		oRS.Open sSQL
+		While Not oRS.EOF 
+			sReturn = sReturn & _
+			"<category>" & oRS( "category" ) & "</category>" & vbCRLF
+			oRS.MoveNext
+		Wend
+	Else
+		' adOpendynamic = 0
+		oRS.CursorType = 0
+		' adLockOptimistic = 1
+		oRS.LockType = 1
+		oRS.Open sSQL
+		Call oRS.Save ( oXML, adPersistXML )
+	End If
+	Set oRS = Nothing
+	
+	If sReturn <> "" Then
+		sReturn = "<list>" & vbCRLF & sReturn & "</list>"
+	End If
+	
+	ListCategories = sReturn
+End Function
+
+' list all tokens of a category
+Function ListTokens( sSource, sDest, sCategory )
+	If IsEmpty( sSource ) or IsEmpty( sDest ) or IsEmpty( sCategory ) Then
+		Exit Function
+	End If
+	
+	sCategory = Trim( Replace( sCategory, "'", "", 1, -1 ) )
+
+	Dim sSQL
+	sSQL = Replace( qListTokens, "%category", sCategory )
+	sSQL = Replace( sSQL, "%source", sSource )
+	sSQL = Replace( sSQL, "%dest", sDest )
+
+	Dim oRS
+	Set oRS = Server.CreateObject( "ADODB.Recordset" )
+	oRS.ActiveConnection = oConn
+
+	Dim sReturn
+	sReturn = ""
+	If Not isPersistData Then
+		oRS.CursorLocation = 3
+		oRS.CursorType = 3
+		oRS.LockType = 3
+		oRS.Open sSQL
+		While Not oRS.EOF 
+			sReturn = sReturn & _
+			"<token>" & vbCRLF & _
+			"	<id>" & oRS( "id" ) & "</id>" & vbCRLF & _
+			"	<original>" & oRS( "original" ) & "</original>" & vbCRLF & _
+			"	<translation>" & oRS( "translation" ) & "</translation>" & vbCRLF & _
+			"</token>" & vbCRLF 
+			oRS.MoveNext
+		Wend
+	Else
+		' adOpendynamic = 0
+		oRS.CursorType = 0
+		' adLockOptimistic = 1
+		oRS.LockType = 1
+		oRS.Open sSQL
+		oRS.Save oXML, adPersistXML
+	End If
+	oRS.Close
+	Set oRS = Nothing
+	
+	If sReturn <> "" Then
+		sReturn = "<list>" & vbCRLF & sReturn & "</list>"
+	End If
+	
+	ListTokens = sReturn
+End Function
+
+' make the translation of a text thru a list of categories of a class (source+dest)
+Function Translate( sSource, sDest, sListCategory, ByRef sBuffer )
+	If IsEmpty( sSource ) or IsEmpty( sDest ) or IsEmpty( sListCategory ) or IsEmpty( sBuffer ) Then
+		Translate = False
+		Exit Function
+	End If
+	
+	sListCategory = Trim( Replace( sListCategory, "'", "", 1, -1 ) )
+
+	' build the query using a list of categories
+	If InStr( sListCategory, "," ) Then
+		Dim aTmp, intCount
+		aTmp = Split( sListCategory, "," )
+		For intCount = 0 To UBound( aTmp )
+			aTmp( intCount ) = "'" & Trim( aTmp( intCount ) ) & "'"
+		Next
+		sListCategory = Join( aTmp, ", " )
+	Else
+		sListCategory = "'" & sListCategory & "'"
+	End If
+	
+	Dim sSQL
+	sSQL = Replace( qQueryTokens, "%source", Trim( sSource ) )
+	sSQL = Replace( sSQL, "%dest", Trim( sDest ) )
+	sSQL = Replace( sSQL, "%categorylist", sListCategory )
+
+	Dim oRS
+	Set oRS = Server.CreateObject( "ADODB.Recordset" )
+	oRS.ActiveConnection = oConn
+	oRS.CursorLocation = 3
+	oRS.CursorType = 3
+	oRS.LockType = 3
+	oRS.Open sSQL
+	
+	If oRS.EOF Then
+		Translate = False
+	Else
+		While Not oRS.EOF 
+			on error resume next
+			sBuffer = Replace( sBuffer, oRS( "original" ), oRS( "translation" ), 1, -1 )
+			on error goto 0
+			oRS.MoveNext
+		Wend
+		Translate = True
+	End If
+	Set oRS = Nothing
+End Function
+
+' set the sql queries
+Sub DefineQueries
+	qDeleteAll = "update tbXML_Translation set is_active = 0 where id in ( %ids )"
+	qQueryTokens = "select t.original, t.translation from tbXML_Translation t, tbXML_Languages a, tbXML_Languages b where a.id = t.source_id and b.id = t.dest_id and t.category in ( %categorylist )"
+	qListTokens = "select t.id, t.original, t.translation from tbXML_Translation t, tbXML_Languages a, tbXML_Languages b where a.id = t.source_id and b.id = t.dest_id and a.shortlabel = '%source' and b.shortlabel = '%dest' and t.category = '%category' order by original"
+	qUpdateToken = "update tbXML_Translation set original = '%original', translation = '%translation' where id = %id"
+	
+	If IsOracle Then
+		qInsert = "insert into tbXML_Translation ( id, category, original, translation, source_id, dest_id, is_active ) " & _
+			"select seq_tbXML_Translation.NextVal, '%category', '%original', '%translation', a.id, b.id, 1 from tbXML_languages a, tbXML_languages b where a.shortlabel = '%source' and b.shortlabel = '%dest' and rownum = 1"
+		qDeleteCategory = "update tbXML_Translation set is_active = 0 where category = '%category' and source_id in ( select id from tbXML_Languages where shortlabel = '%source' and rownum = 1 ) and dest_id in ( select id from tbXML_Languages where shortlabel = '%dest' and rownum = 1 )"
+		qListCategories = "select unique( category ) from tbXML_Translation t, tbXML_Languages a, tbXML_Languages b where a.id = t.source_id and b.id = t.dest_id order by category"
+	Else
+		qInsert = "insert into tbXML_Translation ( category, original, translation, source_id, dest_id, is_active ) " & _
+			"select top 1 '%category', '%original', '%translation', a.id, b.id, 1 from tbXML_languages a, tbXML_languages b where a.shortlabel = '%source' and b.shortlabel = '%dest'"
+		qDeleteCategory = "update tbXML_Translation set is_active = 0 where category = '%category' and source_id in ( select top 1 id from tbXML_Languages where shortlabel = '%source' ) and dest_id in ( select top 1 id from tbXML_Languages where shortlabel = '%dest' )"
+		qListCategories = "select distinct category from tbXML_Translation t, tbXML_Languages a, tbXML_Languages b where a.id = t.source_id and b.id = t.dest_id order by category"
+	End If
+End Sub
+	
+' Constructor
+Sub Initialize
+	isOracle = True
+	Call DefineQueries()
+End Sub
+	
+' Destructor
+Sub Terminate
+	' clean up
+End Sub
+
+'
+' -- Create Initialize and Terminate points for WSC
+'
+Class CPrivate
+	Private Sub Class_Initialize
+		Call Initialize()
+	End Sub
+	
+	Private Sub Class_Terminate
+		Call Terminate()
+	End Sub
+End Class
+Dim ClassHandler
+Set ClassHandler = new CPrivate
+]]>
+</script>
+
+</component>
